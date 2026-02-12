@@ -1,11 +1,23 @@
 # Project Structure – Arith Core Education (ACE)
 
---- 
+---
 
-## Objetivo
-Um sistema de educação que visa oferecer todo controle e acesso aos usuarios com praticidade
+## Objective
+Arith Core Education (ACE) is an educational management system designed to provide full academic and administrative control with practicality, security, and scalability. The architecture follows **Clean Architecture principles**, ensuring separation of concerns, domain isolation, and long-term maintainability.
 
 ---
+
+## Architectural Principles
+
+- Clean Architecture
+- Layered Architecture
+- Modular Monolith
+- Domain-driven design (DDD-inspired)
+- GraphQL as Interface Adapter
+- Framework-agnostic Domain
+
+> Controllers are intentionally not used. **GraphQL Resolvers act as Controllers**, following the Interface Adapters layer.
+
 ---
 
 ## Root Structure
@@ -14,7 +26,7 @@ Um sistema de educação que visa oferecer todo controle e acesso aos usuarios c
 com.ace
 ├── student
 ├── teacher
-├── class
+├── classroom
 ├── auth
 ├── report
 ├── notification
@@ -32,7 +44,7 @@ student
 ├── domain
 │   ├── entity
 │   │   ├── Student.java
-│   │   ├── Note.java
+│   │   ├── Grade.java
 │   │   ├── Attendance.java
 │   │   └── AcademicHistory.java
 │   │
@@ -47,6 +59,10 @@ student
 │   │
 │   ├── repository
 │   │   └── StudentRepository.java
+│   │
+│   ├── port
+│   │   ├── NotificationPort.java
+│   │   └── AuditPort.java
 │   │
 │   └── exception
 │       ├── StudentNotFoundException.java
@@ -85,8 +101,12 @@ student
 │   │   └── mapper
 │   │       └── StudentMapper.java
 │   │
-│   └── search
-│       └── StudentElasticRepository.java
+│   ├── search
+│   │   └── StudentElasticRepository.java
+│   │
+│   └── adapter
+│       ├── EmailNotificationAdapter.java
+│       └── AuditEventAdapter.java
 │
 └── StudentModuleConfig.java
 ```
@@ -119,38 +139,36 @@ teacher
 └── infrastructure
 │   └── persistence
 │       └── TeacherJpaRepository.java
-
 ```
 
 ---
 
-## 🏫 MODULE: CLASS
+## MODULE: CLASSROOM
 
 ```
-class
+classroom
 ├── domain
 │   ├── entity
-│   │   ├── Class.java
+│   │   ├── Classroom.java
 │   │   └── Subject.java
 │   ├── repository
-│   │   └── ClassRepository.java
+│   │   └── ClassroomRepository.java
 │   └── exception
-│       ├── ClassFullException.java
+│       ├── ClassroomFullException.java
 │       └── TeacherAlreadyAssignedException.java
 │
 ├── application
 │   └── usecase
-│       ├── CreateClassUseCase.java
+│       ├── CreateClassroomUseCase.java
 │       └── EnrollStudentUseCase.java
 │
 ├── interface
 │   └── graphql
-│       └── ClassResolver.java
+│       └── ClassroomResolver.java
 │
 └── infrastructure
 │   └── persistence
-│       └── ClassJpaRepository.java
-
+│       └── ClassroomJpaRepository.java
 ```
 
 ---
@@ -239,7 +257,7 @@ audit
 
 ---
 
-## 🧱 SHARED (CROSS-CUTTING)
+## SHARED (CROSS-CUTTING)
 
 ```
 shared
@@ -260,3 +278,21 @@ shared
 ```
 
 ---
+
+## Request Flow Summary
+
+1. Client sends GraphQL Query/Mutation
+2. Resolver validates input and acts as Controller
+3. UseCase executes business logic
+4. Domain enforces rules and invariants
+5. Repositories persist data via Infrastructure
+6. Domain Events trigger Notification and Audit asynchronously
+
+---
+
+## Final Notes
+
+- Domain layer has **no dependency on Spring or frameworks**
+- GraphQL Resolvers replace traditional Controllers
+- Architecture supports future migration to microservices
+- Current stage represents a production-ready foundation
