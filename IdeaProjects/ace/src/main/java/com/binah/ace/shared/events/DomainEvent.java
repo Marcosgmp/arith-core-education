@@ -8,9 +8,6 @@ import java.util.UUID;
 /**
  * Classe base para todos os Domain Events no sistema ACE.
  *
- * Domain Events são parte do padrão DDD (Domain-Driven Design).
- * Representam algo importante que aconteceu no domínio.
- *
  * Exemplos de eventos:
  * - StudentCreatedEvent
  * - GradePostedEvent
@@ -22,10 +19,6 @@ import java.util.UUID;
  * 2. Publicar usando ApplicationEventPublisher
  * 3. Criar listener com @EventListener
  *
- * Benefícios:
- * - Desacoplamento entre módulos
- * - Facilita auditoria
- * - Permite reações assíncronas (enviar email, notificação, etc)
  *
  * @author Marcos Gustavo
  */
