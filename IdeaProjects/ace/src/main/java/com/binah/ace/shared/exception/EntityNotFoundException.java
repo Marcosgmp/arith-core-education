@@ -1,7 +1,7 @@
 package com.binah.ace.shared.exception;
 
 /**
- * Essa exceção sera lançada quando uma entidade não for encontrada no sistema.
+ * Essa exceção será lançada quando uma entidade não for encontrada no sistema.
  *
  * Usada em operações de busca (findById, findByEmail, etc) quando
  * o registro não existe no banco de dados.
