@@ -5,40 +5,83 @@ import com.binah.ace.shared.domain.valueobject.Email;
 import com.binah.ace.teacher.domain.entity.Teacher;
 import com.binah.ace.teacher.domain.enums.ContractType;
 import com.binah.ace.teacher.domain.repository.TeacherRepository;
-import com.binah.ace.teacher.domain.exception.TeacherNotFoundException;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import java.time.LocalDate;
+
 import java.util.UUID;
 
-@Component  // ⭐️ ADICIONAR ISSO
-@RequiredArgsConstructor  // ⭐️ ADICIONAR ISSO
+/**
+ * Application use case responsible for creating a new Teacher in the system.
+ *
+ * This class belongs to the application layer and orchestrates
+ * the process of teacher creation by coordinating domain objects
+ * and repository interactions.
+ *
+ * Responsibilities:
+ * - Validate CPF uniqueness in the system
+ * - Instantiate domain value objects (CPF and Email)
+ * - Create the Teacher domain entity
+ * - Persist the Teacher using the TeacherRepository
+ *
+ * This class does not contain persistence logic. All persistence
+ * responsibilities are delegated to the repository abstraction
+ * defined in the domain layer.
+ *
+ * @author Paulo
+ */
+@Component
+@RequiredArgsConstructor
 public class CreateTeacherUseCase {
-    
-    private final TeacherRepository teacherRepository;  // ⭐️ ADICIONAR ISSO
-    
-    // Record Command conforme especificação
+
+    /**
+     * Repository abstraction used to access teacher persistence.
+     */
+    private final TeacherRepository teacherRepository;
+
+    /**
+     * Command object used to encapsulate the data required
+     * to create a new teacher.
+     *
+     * Using a record ensures immutability and clarity
+     * when passing data to the use case.
+     */
     public record CreateTeacherCommand(
         String fullName,
         String cpf,
         String email,
         String phone,
         ContractType contractType,
-        Integer workloadHours,
-        LocalDate hireDate
+        Integer workloadHours
     ) {}
-    
+
+    /**
+     * Executes the teacher creation process.
+     *
+     * Workflow:
+     * 1. Validate that the CPF does not already exist in the system
+     * 2. Instantiate domain value objects (CPF and Email)
+     * 3. Create the Teacher domain entity
+     * 4. Persist the entity through the repository
+     *
+     * @param command   Data required to create a teacher
+     * @param createdBy Identifier of the user performing the action
+     * @return The persisted Teacher entity
+     */
     public Teacher execute(CreateTeacherCommand command, UUID createdBy) {
-        // 1. Validar CPF único
+
+        // 1. Validate CPF uniqueness
         if (teacherRepository.existsByCPF(new CPF(command.cpf()))) {
-            throw new RuntimeException("Professor com CPF " + command.cpf() + " já existe");
+            throw new RuntimeException(
+                "Teacher with CPF " + command.cpf() + " already exists"
+            );
         }
-        
-        // 2. Criar value objects
+
+        // 2. Create value objects from raw input data
         CPF cpfVo = new CPF(command.cpf());
         Email emailVo = new Email(command.email());
-        
-        // 3. Criar Teacher com construtor
+
+        // 3. Instantiate the Teacher domain entity
         Teacher teacher = new Teacher(
             command.fullName(),
             cpfVo,
@@ -47,14 +90,8 @@ public class CreateTeacherUseCase {
             command.contractType(),
             command.workloadHours()
         );
-        
-        // 4. Set hireDate se fornecido
-        if (command.hireDate() != null) {
-            // Assumindo que Teacher tem setHireDate()
-            // teacher.setHireDate(command.hireDate());
-        }
-        
-        // 5. Salvar e retornar
+
+        // 4. Persist the teacher using the repository
         return teacherRepository.save(teacher);
     }
 }
