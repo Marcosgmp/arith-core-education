@@ -1,0 +1,154 @@
+# Schema GraphQL para módulo Student
+
+# ============================================
+# QUERIES (Leitura)
+# ============================================
+
+type Query {
+  """Busca aluno por ID"""
+  student(id: ID!): Student
+  
+  """Lista todos os alunos ativos"""
+  students: [Student!]!
+  
+  """Busca alunos por nome"""
+  searchStudents(name: String!): [Student!]!
+  
+  """Visualiza boletim do aluno"""
+  reportCard(
+    studentId: ID!
+    year: Int!
+    semester: Int!
+    bimester: Int
+  ): ReportCard!
+}
+
+# ============================================
+# MUTATIONS (Escrita)
+# ============================================
+
+type Mutation {
+  """Cria novo aluno"""
+  createStudent(input: CreateStudentInput!): Student!
+  
+  """Lança nota de aluno"""
+  postGrade(input: PostGradeInput!): Grade!
+}
+
+# ============================================
+# TYPES
+# ============================================
+
+"""Aluno"""
+type Student {
+  id: ID!
+  fullName: String!
+  cpf: String!
+  email: String!
+  birthDate: String!
+  phone: String
+  address: String
+  enrollmentNumber: String
+  enrollmentDate: String
+  status: StudentStatus!
+  guardianName: String!
+  guardianPhone: String
+  guardianEmail: String!
+  age: Int!
+  isMinor: Boolean!
+  createdAt: String!
+}
+
+"""Nota"""
+type Grade {
+  id: ID!
+  studentId: ID!
+  classroomSubjectId: ID!
+  assessmentType: AssessmentType!
+  score: Float!
+  weight: Float!
+  description: String
+  assessmentDate: String!
+  comments: String
+  year: Int!
+  semester: Int!
+  bimester: Int
+  isPassing: Boolean!
+  isFailing: Boolean!
+}
+
+"""Boletim"""
+type ReportCard {
+  studentId: ID!
+  studentName: String!
+  enrollmentNumber: String!
+  year: Int!
+  semester: Int!
+  bimester: Int
+  gpa: Float!
+  attendancePercentage: Float!
+  isApproved: Boolean!
+  subjectGrades: [SubjectGrades!]!
+}
+
+"""Notas de uma disciplina"""
+type SubjectGrades {
+  subjectId: ID!
+  grades: [Grade!]!
+  average: Float!
+}
+
+# ============================================
+# INPUTS
+# ============================================
+
+"""Input para criar aluno"""
+input CreateStudentInput {
+  fullName: String!
+  cpf: String!
+  email: String!
+  birthDate: String!
+  phone: String
+  address: String
+  guardianName: String!
+  guardianPhone: String
+  guardianEmail: String!
+}
+
+"""Input para lançar nota"""
+input PostGradeInput {
+  studentId: ID!
+  classroomSubjectId: ID!
+  assessmentType: AssessmentType!
+  score: Float!
+  weight: Float
+  description: String
+  assessmentDate: String!
+  year: Int!
+  semester: Int!
+  bimester: Int
+}
+
+# ============================================
+# ENUMS
+# ============================================
+
+"""Status do aluno"""
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+  TRANSFERRED
+  EXPELLED
+}
+
+"""Tipo de avaliação"""
+enum AssessmentType {
+  EXAM
+  QUIZ
+  PROJECT
+  ASSIGNMENT
+  PARTICIPATION
+  PRESENTATION
+  LAB_WORK
+}

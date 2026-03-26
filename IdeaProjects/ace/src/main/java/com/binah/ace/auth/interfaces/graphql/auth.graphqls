@@ -1,0 +1,51 @@
+# Schema GraphQL para módulo Auth
+
+type Mutation {
+  """
+  Faz login no sistema.
+  Retorna token JWT e dados do usuário.
+  """
+  login(input: LoginInput!): AuthResponse!
+}
+
+"""
+Input para login
+"""
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+"""
+Resposta do login contendo token e dados do usuário
+"""
+type AuthResponse {
+  """Token JWT para autenticação"""
+  token: String!
+  
+  """ID do usuário"""
+  userId: ID!
+  
+  """Nome de usuário"""
+  username: String!
+  
+  """Email"""
+  email: String!
+  
+  """Papel do usuário no sistema"""
+  role: Role!
+  
+  """ID da entidade vinculada (Student, Teacher, etc)"""
+  entityId: ID
+}
+
+"""
+Papéis de usuário no sistema
+"""
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  GUARDIAN
+  STAFF
+}
