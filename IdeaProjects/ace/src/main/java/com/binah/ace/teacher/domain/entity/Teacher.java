@@ -26,17 +26,17 @@ public class Teacher {
     private LocalDateTime updatedAt;
 
     // Construtor sem (ID, timeStamps)
-    public Teacher(String fullName, CPF cpf, Email email, String phone, TeacherStatus status,
-                   ContractType contractType, Integer workLoadHours, LocalDate hireDate) {
-        this.fullName = fullName;
-        this.cpf = cpf;
-        this.email = email;
-        this.phone = phone;
-        this.status = status;
-        this.contractType = contractType;
-        this.workLoadHours = workLoadHours;
-        this.hireDate = hireDate;
-    }
+//    public Teacher(String fullName, CPF cpf, Email email, String phone, TeacherStatus status,
+//                   ContractType contractType, Integer workLoadHours, LocalDate hireDate) {
+//        this.fullName = fullName;
+//        this.cpf = cpf;
+//        this.email = email;
+//        this.phone = phone;
+//        this.status = status;
+//        this.contractType = contractType;
+//        this.workLoadHours = workLoadHours;
+//        this.hireDate = hireDate;
+//    }
 
 
     // Contrutor completo (para reconstruir do banco)
@@ -110,7 +110,7 @@ public class Teacher {
 
     // update in cargaHoraria
     public void updateWorkLoad(Integer hours) {
-        if (hours <= 0 || hours == null) {
+        if (hours == null || hours <= 0 ) {
             throw new IllegalArgumentException("Carga horária deve ser maior que 0.");
         }
         this.workLoadHours = hours;
@@ -143,6 +143,8 @@ public class Teacher {
 
     // verificações internas
     public void validateCreation(String fullName, CPF cpf, Email email, Integer workLoadHours) {
+        if (hireDate == null) { throw new IllegalArgumentException("Data de contratação é obrigatória.");}
+        if (hireDate.isAfter(LocalDate.now())) { throw new IllegalArgumentException("Data de contratação não pode ser futura.");}
         if (cpf == null) {throw new IllegalArgumentException("CPF é obrigatório.");}
         if (email == null) {throw new IllegalArgumentException("Email é obrigatório.");}
         if (fullName == null || fullName.trim().isEmpty())
@@ -163,7 +165,7 @@ public class Teacher {
     public String getPhone() { return phone; }
     public TeacherStatus getStatus() { return status; }
     public ContractType getContractType() { return contractType; }
-    public Integer getWorkloadHours() { return workLoadHours; }
+    public Integer getWorkLoadHours() { return workLoadHours; }
     public Set<UUID> getSubjectIds() { return new HashSet<>(subjectIds); }
     public LocalDate getHireDate() { return hireDate; }
     public LocalDateTime getCreatedAt() { return createdAt; }
