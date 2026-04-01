@@ -45,7 +45,7 @@ public class TeacherMapper {
         entity.setPhone(domain.getPhone());
         entity.setStatus(domain.getStatus());
         entity.setContractType(domain.getContractType());
-        entity.setWorkLoadHours(domain.getWorkloadHours());
+        entity.setWorkLoadHours(domain.getWorkLoadHours());
         entity.setSubjectIds(domain.getSubjectIds());
         entity.setHireDate(domain.getHireDate());
         entity.setCreatedAt(domain.getCreatedAt());
