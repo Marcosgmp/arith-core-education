@@ -19,12 +19,19 @@ class TeacherTest {
         CPF cpf = new CPF("529.982.247-25");
         Email email = new Email("joao@school.com");
 
-        Teacher teacher = new Teacher("João Silva", cpf, email, "11999999999", TeacherStatus.ACTIVE,
-                ContractType.FULL_TIME, Integer.valueOf(40), LocalDate.now());
+        Teacher teacher = Teacher.create(
+            "João Silva",
+            cpf,
+            email,
+            "11999999999",
+            ContractType.FULL_TIME,
+            40,
+            LocalDate.now()
+        );
 
         assertEquals(TeacherStatus.ACTIVE, teacher.getStatus());
         assertTrue(teacher.canTeach());
         assertEquals("João Silva", teacher.getFullName());
-        assertEquals(40, teacher.getWorkloadHours());
+        assertEquals(40, teacher.getWorkLoadHours());
     }
 }
