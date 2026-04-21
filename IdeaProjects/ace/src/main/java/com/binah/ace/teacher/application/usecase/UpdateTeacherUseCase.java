@@ -1,6 +1,6 @@
 package com.binah.ace.teacher.application.usecase;
 
-import com.binah.ace.shared.domain.valueobject.Email;
+import com.binah.ace.shared.valueobject.Email;
 import com.binah.ace.teacher.domain.entity.Teacher;
 import com.binah.ace.teacher.domain.exception.TeacherNotFoundException;
 import com.binah.ace.teacher.domain.repository.TeacherRepository;
@@ -35,7 +35,7 @@ public class UpdateTeacherUseCase {
         
         // 3. Atualizar carga horária
         if (command.workloadHours() != null) {
-            teacher.updateWorkload(command.workloadHours());
+            teacher.updateWorkLoad(command.workloadHours());
         }
         
         // 4. Salvar
