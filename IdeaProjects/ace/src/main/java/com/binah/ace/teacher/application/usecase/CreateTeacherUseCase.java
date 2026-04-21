@@ -1,10 +1,11 @@
 package com.binah.ace.teacher.application.usecase;
 
-import com.binah.ace.shared.domain.valueobject.CPF;
-import com.binah.ace.shared.domain.valueobject.Email;
+import com.binah.ace.shared.valueobject.CPF;
+import com.binah.ace.shared.valueobject.Email;
 import com.binah.ace.teacher.domain.entity.Teacher;
 import com.binah.ace.teacher.domain.enums.ContractType;
 import com.binah.ace.teacher.domain.repository.TeacherRepository;
+import java.time.LocalDate;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -52,7 +53,8 @@ public class CreateTeacherUseCase {
         String email,
         String phone,
         ContractType contractType,
-        Integer workloadHours
+        Integer workloadHours,
+        LocalDate hireDate
     ) {}
 
     /**
@@ -82,13 +84,14 @@ public class CreateTeacherUseCase {
         Email emailVo = new Email(command.email());
 
         // 3. Instantiate the Teacher domain entity
-        Teacher teacher = new Teacher(
+        Teacher teacher = Teacher.create(
             command.fullName(),
             cpfVo,
             emailVo,
             command.phone(),
             command.contractType(),
-            command.workloadHours()
+            command.workloadHours(),
+            command.hireDate()
         );
 
         // 4. Persist the teacher using the repository
