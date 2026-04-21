@@ -1,15 +1,15 @@
 package com.binah.ace.teacher.domain.entity;
 
-import com.binah.ace.shared.valueobject.CPF;
-import com.binah.ace.shared.valueobject.Email;
-import com.binah.ace.teacher.domain.enums.ContractType;
-import com.binah.ace.teacher.domain.enums.TeacherStatus;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+
+import com.binah.ace.shared.valueobject.CPF;
+import com.binah.ace.shared.valueobject.Email;
+import com.binah.ace.teacher.domain.enums.ContractType;
+import com.binah.ace.teacher.domain.enums.TeacherStatus;
 
 public class Teacher {
     private UUID id;
@@ -54,6 +54,35 @@ public class Teacher {
         this.hireDate = hireDate;
         this.createdAt = createdAt;
         this.updatedAt = updateddAt;
+    }
+
+    /**
+     * Author: Davi José
+     * Corrigindo erro em CreateTeacherUseCase.java
+     * Cria um novo Professor com os dados fornecidos.
+     * Gera automaticamente o ID, define o status inicial como ACTIVE,
+     * inicializa a lista de disciplinas vazia e os timestamps de criação.
+     */
+    public static Teacher create(String fullName, CPF cpf, Email email, 
+    String phone, ContractType contractType, Integer workLoadHours, LocalDate hireDate) 
+    {
+        Teacher teacher = new Teacher (
+            UUID.randomUUID(),
+            fullName, 
+            cpf,
+            email,
+            phone, 
+            TeacherStatus.ACTIVE,
+            contractType,
+            workLoadHours,
+            new HashSet<>(),
+            hireDate,
+            LocalDateTime.now(),
+            LocalDateTime.now()
+        );
+
+        teacher.validateCreation(fullName, cpf, email, workLoadHours);
+        return teacher;
     }
 
     // métodos
@@ -149,7 +178,7 @@ public class Teacher {
         if (email == null) {throw new IllegalArgumentException("Email é obrigatório.");}
         if (fullName == null || fullName.trim().isEmpty())
         {throw new IllegalArgumentException("Nome completo é obrigatório.");}
-        if(workLoadHours <= 0 || workLoadHours == null)
+        if(workLoadHours == null || workLoadHours <= 0)
         {throw new IllegalArgumentException("Carga horária deve ser maior que 0.");}
     }
 
