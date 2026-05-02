@@ -1,0 +1,211 @@
+@startuml
+title Teacher Module - Class Diagram
+
+skinparam class {
+    BackgroundColor<<Entity>> #E8F5E9
+    BackgroundColor<<ValueObject>> #E3F2FD
+    BackgroundColor<<Enum>> #FFF9C4
+    BackgroundColor<<Repository>> #F3E5F5
+    BackgroundColor<<UseCase>> #FFE0B2
+    BackgroundColor<<Service>> #FFCCBC
+    BackgroundColor<<Exception>> #FFEBEE
+    BorderColor Black
+    ArrowColor Black
+}
+
+skinparam packageStyle rectangle
+
+class UUID
+class RuntimeException
+class LocalDate
+class LocalDateTime
+
+package "Domain Layer" {
+
+    package "entity" {
+        class Teacher <<Entity>> {
+            - id: UUID
+            - fullName: String
+            - cpf: CPF
+            - email: Email
+            - phone: String
+            - status: TeacherStatus
+            - contractType: ContractType
+            - workLoadHours: Integer
+            - hireDate: LocalDate
+            - createdAt: LocalDateTime
+            - updatedAt: LocalDateTime
+
+            + activate(): void
+            + inactivate(): void
+            + grantLeave(): void
+            + terminate(): void
+            + assignSubject(subjectId: UUID): void
+            + removeSubject(subjectId: UUID): void
+            + updateWorkLoad(hours: Integer): void
+            + updatePersonalInfo(fullName, email, phone): void
+            + canTeach(): boolean
+        }
+    }
+
+    package "enums" {
+        enum TeacherStatus <<Enum>> {
+            ACTIVE
+            INACTIVE
+            ON_LEAVE
+            TERMINATED
+        }
+
+        enum ContractType <<Enum>> {
+            FULL_TIME
+            PART_TIME
+            HOURLY
+            SUBSTITUTE
+        }
+    }
+
+    package "exception" {
+        class TeacherNotFoundException <<Exception>> {
+            + TeacherNotFoundException(id: UUID)
+        }
+    }
+
+    package "repository" {
+        interface TeacherRepository <<Repository>> {
+            + findById(id: UUID): Teacher
+            + findByCPF(cpf: CPF): Teacher
+            + findActiveTeachers(): List<Teacher>
+            + save(teacher: Teacher): Teacher
+            + deleteById(id: UUID): void
+            + searchByName(name: String): List<Teacher>
+        }
+    }
+}
+
+package "Shared Value Objects" {
+    class CPF <<ValueObject>> {
+        - value: String
+        + value(): String
+    }
+
+    class Email <<ValueObject>> {
+        - value: String
+        + value(): String
+    }
+
+    class CreateTeacherCommand {
+        + fullName: String
+        + cpf: String
+        + email: String
+        + phone: String
+        + contractType: ContractType
+        + workLoadHours: Integer
+        + hireDate: LocalDate
+    }
+
+    class UpdateTeacherCommand {
+        + teacherId: UUID
+        + fullName: String
+        + email: String
+        + phone: String
+        + workLoadHours: Integer
+    }
+}
+
+package "Application Layer" {
+
+    package "usecase" {
+        class CreateTeacherUseCase <<UseCase>> {
+            - teacherRepository: TeacherRepository
+            + execute(command: CreateTeacherCommand): Teacher
+        }
+
+        class UpdateTeacherUseCase <<UseCase>> {
+            - teacherRepository: TeacherRepository
+            + execute(command: UpdateTeacherCommand): Teacher
+        }
+
+        class AssignSubjectUseCase <<UseCase>> {
+            - teacherRepository: TeacherRepository
+            + execute(teacherId: UUID, subjectId: UUID): Teacher
+        }
+
+        class RemoveSubjectUseCase <<UseCase>> {
+            - teacherRepository: TeacherRepository
+            + execute(teacherId: UUID, subjectId: UUID): Teacher
+        }
+
+        class TerminateTeacherUseCase <<UseCase>> {
+            - teacherRepository: TeacherRepository
+            + execute(teacherId: UUID): Teacher
+        }
+    }
+
+    package "service" {
+        class TeacherApplicationService <<Service>> {
+            - teacherRepository: TeacherRepository
+            + createTeacher(command): Teacher
+            + updateTeacher(command): Teacher
+            + activateTeacher(id: UUID): Teacher
+            + inactivateTeacher(id: UUID): Teacher
+            + grantLeave(id: UUID): Teacher
+            + terminateTeacher(id: UUID): Teacher
+            + assignSubject(teacherId, subjectId): Teacher
+            + removeSubject(teacherId, subjectId): Teacher
+            + findById(id: UUID): Teacher
+            + findActiveTeachers(): List<Teacher>
+        }
+    }
+}
+
+Teacher "1" *-- "1" CPF
+Teacher "1" *-- "1" Email
+Teacher "1" --> "1" TeacherStatus
+Teacher "1" --> "1" ContractType
+
+TeacherRepository ..> Teacher
+TeacherRepository ..> CPF
+
+CreateTeacherUseCase ..> TeacherRepository
+CreateTeacherUseCase ..> Teacher
+CreateTeacherUseCase ..> CreateTeacherCommand
+
+UpdateTeacherUseCase ..> TeacherRepository
+UpdateTeacherUseCase ..> Teacher
+UpdateTeacherUseCase ..> UpdateTeacherCommand
+
+AssignSubjectUseCase ..> TeacherRepository
+AssignSubjectUseCase ..> Teacher
+
+RemoveSubjectUseCase ..> TeacherRepository
+RemoveSubjectUseCase ..> Teacher
+
+TerminateTeacherUseCase ..> TeacherRepository
+TerminateTeacherUseCase ..> Teacher
+
+TeacherApplicationService ..> CreateTeacherUseCase
+TeacherApplicationService ..> UpdateTeacherUseCase
+TeacherApplicationService ..> AssignSubjectUseCase
+TeacherApplicationService ..> RemoveSubjectUseCase
+TeacherApplicationService ..> TerminateTeacherUseCase
+
+TeacherNotFoundException --|> RuntimeException
+
+note right of Teacher
+Aggregate Root do módulo Teacher.
+Centraliza regras de negócio
+relacionadas ao professor.
+end note
+
+note right of TeacherRepository
+Abstração de persistência.
+Implementação fica na
+camada de infraestrutura.
+end note
+
+note right of TeacherApplicationService
+Facade da camada de aplicação.
+Orquestra os casos de uso.
+end note
+
+@enduml

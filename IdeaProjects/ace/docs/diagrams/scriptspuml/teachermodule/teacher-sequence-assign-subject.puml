@@ -1,0 +1,35 @@
+@startuml
+title Teacher - Assign Subject Sequence Diagram
+
+autonumber
+skinparam sequenceMessageAlign center
+
+actor "ADMIN/STAFF" as User
+participant "TeacherApplicationService" as Service
+participant "AssignSubjectUseCase" as UseCase
+participant "TeacherRepository" as Repo
+participant "Teacher" as Entity
+database "Database" as DB
+
+User -> Service : assignSubject()
+Service -> UseCase : execute()
+
+UseCase -> Repo : findById()
+Repo -> DB : SELECT
+DB --> Repo : teacherData
+Repo --> UseCase : teacher
+
+UseCase -> Entity : canTeach()
+Entity --> UseCase : true
+
+UseCase -> Entity : assignSubject()
+Entity --> UseCase : ok
+
+UseCase -> Repo : save()
+Repo -> DB : UPDATE
+DB --> Repo : ok
+
+UseCase --> Service : teacher
+Service --> User : teacher
+
+@enduml

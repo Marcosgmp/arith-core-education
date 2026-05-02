@@ -1,0 +1,53 @@
+@startuml
+title ACE System - Use Case Diagram
+
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+
+left to right direction
+
+' ==================== ATORES ====================
+actor "Coordenador\n(STAFF)" as STAFF
+actor "Administrador\n(ADMIN)" as ADMIN
+actor "Professor\n(TEACHER)" as TEACHER
+actor "Aluno\n(STUDENT)" as STUDENT
+actor "Responsável\n(GUARDIAN)" as GUARDIAN
+actor "Sistema\n(Automático)" as SYSTEM
+
+' HERANÇA
+ADMIN --|> STAFF
+
+rectangle "Sistema ACE" {
+
+usecase "Login" as AUTH_LOGIN
+usecase "Cadastrar Aluno" as STU_CREATE
+usecase "Lançar Nota" as GRD_POST
+usecase "Registrar Presença" as ATT_REGISTER
+usecase "Gerar Relatório" as RPT_INDIVIDUAL
+
+}
+
+' STAFF
+STAFF --> AUTH_LOGIN
+STAFF --> STU_CREATE
+STAFF --> RPT_INDIVIDUAL
+
+' ADMIN (extras)
+ADMIN --> STU_CREATE
+
+' TEACHER
+TEACHER --> AUTH_LOGIN
+TEACHER --> GRD_POST
+TEACHER --> ATT_REGISTER
+
+' STUDENT
+STUDENT --> AUTH_LOGIN
+
+' GUARDIAN
+GUARDIAN --> AUTH_LOGIN
+GUARDIAN --> RPT_INDIVIDUAL
+
+' SYSTEM
+SYSTEM --> GRD_POST
+
+@enduml

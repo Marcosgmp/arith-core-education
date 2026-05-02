@@ -1,0 +1,44 @@
+@startuml
+title Teacher - Create Sequence Diagram
+
+autonumber
+skinparam sequenceMessageAlign center
+
+actor "ADMIN/STAFF" as User
+participant "TeacherApplicationService" as Service
+participant "CreateTeacherUseCase" as UseCase
+participant "TeacherRepository" as Repo
+participant "Teacher" as Entity
+participant "CPF" as CPF
+participant "Email" as Email
+database "Database" as DB
+
+User -> Service : createTeacher(command)
+Service -> UseCase : execute(command)
+
+create CPF
+UseCase -> CPF : new CPF(command.cpf)
+CPF --> UseCase : cpf
+
+UseCase -> Repo : existsByCPF(cpf)
+Repo -> DB : SELECT cpf
+DB --> Repo : false
+Repo --> UseCase : false
+
+create Email
+UseCase -> Email : new Email(command.email)
+Email --> UseCase : email
+
+create Entity
+UseCase -> Entity : new Teacher(...)
+Entity --> UseCase : teacher
+
+UseCase -> Repo : save(teacher)
+Repo -> DB : INSERT
+DB --> Repo : persisted
+Repo --> UseCase : teacher
+
+UseCase --> Service : teacher
+Service --> User : teacher
+
+@enduml

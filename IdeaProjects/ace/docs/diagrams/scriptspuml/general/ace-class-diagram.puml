@@ -1,0 +1,235 @@
+@startuml
+title ACE System - Class Diagram
+
+skinparam packageStyle rectangle
+
+' ==================== SHARED ====================
+package "SHARED" {
+
+class CPF <<ValueObject>> {
+    - value: String
+    + CPF(value: String)
+    + value(): String
+}
+
+class Email <<ValueObject>> {
+    - value: String
+    + Email(value: String)
+    + value(): String
+}
+
+class Enrollment <<ValueObject>> {
+    - value: String
+}
+
+class GPA <<ValueObject>> {
+    - value: BigDecimal
+    + getStatus(): ApprovalStatus
+}
+
+enum ApprovalStatus {
+    APPROVED
+    RECOVERY
+    FAILED
+}
+
+abstract class EntityNotFoundException <<Exception>>
+}
+
+' ==================== AUTH ====================
+package "AUTH" {
+
+class User <<Entity>> {
+    - id: UUID
+    - username: String
+    - passwordHash: String
+    - email: Email
+    - role: UserRole
+    - status: UserStatus
+
+    + authenticate(password: String): boolean
+    + lockAccount(): void
+    + unlockAccount(): void
+}
+
+enum UserRole {
+    ADMIN
+    STAFF
+    TEACHER
+    STUDENT
+    GUARDIAN
+}
+
+enum UserStatus {
+    ACTIVE
+    INACTIVE
+    LOCKED
+}
+
+interface UserRepository <<Repository>> {
+    + findById(id: UUID)
+    + save(user: User)
+}
+
+class UserNotFoundException <<Exception>>
+}
+
+' ==================== STUDENT ====================
+package "STUDENT" {
+
+class Student <<Entity>> {
+    - id: UUID
+    - fullName: String
+    - cpf: CPF
+    - email: Email
+    - enrollment: Enrollment
+    - status: StudentStatus
+
+    + activate(): void
+    + graduate(): void
+    + calculateAge(): Integer
+}
+
+class Grade <<Entity>> {
+    - id: UUID
+    - studentId: UUID
+    - score: BigDecimal
+    - assessmentType: AssessmentType
+
+    + updateScore(score: BigDecimal): void
+}
+
+class Attendance <<Entity>> {
+    - id: UUID
+    - studentId: UUID
+    - date: LocalDate
+    - status: AttendanceStatus
+}
+
+class AcademicHistory <<Entity>> {
+    - id: UUID
+    - studentId: UUID
+    - gpa: GPA
+    - status: ApprovalStatus
+}
+
+enum StudentStatus {
+    ACTIVE
+    INACTIVE
+    GRADUATED
+    TRANSFERRED
+    EXPELLED
+}
+
+enum AssessmentType {
+    EXAM
+    ASSIGNMENT
+    QUIZ
+}
+
+enum AttendanceStatus {
+    PRESENT
+    ABSENT
+    LATE
+}
+
+interface StudentRepository <<Repository>>
+interface GradeRepository <<Repository>>
+
+class StudentNotFoundException <<Exception>>
+}
+
+' ==================== TEACHER ====================
+package "TEACHER" {
+
+class Teacher <<Entity>> {
+    - id: UUID
+    - fullName: String
+    - cpf: CPF
+    - email: Email
+    - status: TeacherStatus
+
+    + activate(): void
+    + terminate(): void
+}
+
+enum TeacherStatus {
+    ACTIVE
+    INACTIVE
+    TERMINATED
+}
+
+enum ContractType {
+    FULL_TIME
+    PART_TIME
+    HOURLY
+}
+
+interface TeacherRepository <<Repository>>
+
+class TeacherNotFoundException <<Exception>>
+}
+
+' ==================== APPLICATION ====================
+package "APPLICATION" {
+
+class StudentApplicationService <<Service>> {
+    - studentRepository: StudentRepository
+    - gradeRepository: GradeRepository
+
+    + createStudent()
+    + calculateGPA(studentId: UUID)
+}
+
+class TeacherApplicationService <<Service>> {
+    - teacherRepository: TeacherRepository
+}
+
+class AuthenticationService <<Service>> {
+    - userRepository: UserRepository
+}
+
+class JwtService <<Service>>
+}
+
+' ==================== RELACIONAMENTOS ====================
+
+Student --> CPF
+Student --> Email
+Student --> Enrollment
+Student --> StudentStatus
+
+Teacher --> CPF
+Teacher --> Email
+Teacher --> TeacherStatus
+Teacher --> ContractType
+
+User --> Email
+User --> UserRole
+User --> UserStatus
+
+Grade --> Student
+Grade --> AssessmentType
+
+Attendance --> Student
+Attendance --> AttendanceStatus
+
+AcademicHistory --> Student
+AcademicHistory --> GPA
+AcademicHistory --> ApprovalStatus
+
+GPA --> ApprovalStatus
+
+StudentApplicationService --> StudentRepository
+StudentApplicationService --> GradeRepository
+
+TeacherApplicationService --> TeacherRepository
+
+AuthenticationService --> UserRepository
+AuthenticationService --> JwtService
+
+StudentNotFoundException --|> EntityNotFoundException
+TeacherNotFoundException --|> EntityNotFoundException
+UserNotFoundException --|> EntityNotFoundException
+
+@enduml

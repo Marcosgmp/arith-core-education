@@ -1,0 +1,35 @@
+@startuml
+title Teacher Status - State Diagram
+
+[*] --> ACTIVE : Criar Professor
+
+ACTIVE --> INACTIVE : inactivate()
+INACTIVE --> ACTIVE : activate()
+
+ACTIVE --> ON_LEAVE : grantLeave()
+ON_LEAVE --> ACTIVE : activate()
+
+ACTIVE --> TERMINATED : terminate()
+INACTIVE --> TERMINATED : terminate()
+ON_LEAVE --> TERMINATED : terminate()
+
+TERMINATED --> [*]
+
+note right of ACTIVE
+Professor ativo
+Pode lecionar
+end note
+
+note right of INACTIVE
+Temporariamente inativo
+end note
+
+note right of ON_LEAVE
+Licença temporária
+end note
+
+note right of TERMINATED
+Estado final irreversível
+end note
+
+@enduml

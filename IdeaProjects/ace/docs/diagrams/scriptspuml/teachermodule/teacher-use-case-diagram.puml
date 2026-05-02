@@ -1,0 +1,74 @@
+@startuml
+title Teacher Module - Use Case Diagram
+
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+left to right direction
+
+actor "Administrador\n(ADMIN)" as ADMIN
+actor "Coordenador\n(STAFF)" as STAFF
+actor "Professor\n(TEACHER)" as TEACHER
+actor "Sistema\n(Automático)" as SYSTEM
+
+rectangle "Sistema ACE - Módulo Teacher" {
+
+    package "Gestão de Cadastro" {
+        usecase "Cadastrar Professor" as UC_CREATE
+        usecase "Atualizar Dados\ndo Professor" as UC_UPDATE
+        usecase "Buscar Professor" as UC_SEARCH
+        usecase "Listar Professores\nAtivos" as UC_LIST_ACTIVE
+    }
+
+    package "Gestão de Status" {
+        usecase "Ativar Professor" as UC_ACTIVATE
+        usecase "Inativar Professor" as UC_INACTIVATE
+        usecase "Colocar em Licença" as UC_LEAVE
+        usecase "Desligar Professor" as UC_TERMINATE
+    }
+
+    package "Gestão de Disciplinas" {
+        usecase "Vincular Disciplina" as UC_ASSIGN
+        usecase "Desvincular Disciplina" as UC_REMOVE
+        usecase "Listar Professores\npor Disciplina" as UC_LIST_BY_SUBJECT
+    }
+
+    package "Validações Automáticas" {
+        usecase "Validar CPF Único" as UC_VALIDATE_CPF
+        usecase "Validar Email Único" as UC_VALIDATE_EMAIL
+        usecase "Validar Status" as UC_VALIDATE_STATUS
+        usecase "Validar Carga Horária" as UC_VALIDATE_WORKLOAD
+    }
+}
+
+ADMIN --> UC_CREATE
+ADMIN --> UC_UPDATE
+ADMIN --> UC_ACTIVATE
+ADMIN --> UC_INACTIVATE
+ADMIN --> UC_LEAVE
+ADMIN --> UC_TERMINATE
+ADMIN --> UC_ASSIGN
+ADMIN --> UC_REMOVE
+ADMIN --> UC_SEARCH
+
+STAFF --> UC_CREATE
+STAFF --> UC_UPDATE
+STAFF --> UC_ASSIGN
+STAFF --> UC_REMOVE
+STAFF --> UC_SEARCH
+
+TEACHER --> UC_SEARCH : próprios dados
+
+SYSTEM --> UC_VALIDATE_CPF
+SYSTEM --> UC_VALIDATE_EMAIL
+SYSTEM --> UC_VALIDATE_STATUS
+SYSTEM --> UC_VALIDATE_WORKLOAD
+
+UC_CREATE .> UC_VALIDATE_CPF : <<include>>
+UC_CREATE .> UC_VALIDATE_EMAIL : <<include>>
+UC_CREATE .> UC_VALIDATE_WORKLOAD : <<include>>
+
+UC_UPDATE .> UC_VALIDATE_EMAIL : <<include>>
+UC_ASSIGN .> UC_VALIDATE_STATUS : <<include>>
+UC_TERMINATE .> UC_REMOVE : <<include>>
+
+@enduml
