@@ -1,0 +1,91 @@
+@startuml
+title STUDENT.RF001 - Cadastrar Novo Aluno
+
+actor "ADMIN / STAFF" as Staff
+
+boundary Frontend
+control StudentResolver
+control StudentService
+control EnrollmentService
+control NotificationService
+control AuditService
+
+database PostgreSQL
+
+Staff -> Frontend : Acessa cadastro de aluno
+
+Frontend --> Staff : Exibe formulário completo
+
+Staff -> Frontend : Preenche dados do aluno
+
+Frontend -> StudentResolver : mutation createStudent(dto)
+
+StudentResolver -> StudentService : createStudent(dto)
+
+StudentService -> PostgreSQL : validarCPF()
+
+alt CPF já existe
+
+    StudentService --> StudentResolver : CPF duplicado
+
+    StudentResolver --> Frontend : Erro validação
+
+    Frontend --> Staff : CPF já cadastrado
+
+else CPF válido
+
+    StudentService -> PostgreSQL : validarEmail()
+
+    alt Email duplicado
+
+        StudentService --> StudentResolver : Email inválido
+
+        StudentResolver --> Frontend : Erro validação
+
+        Frontend --> Staff : Email já utilizado
+
+    else Email válido
+
+        StudentService -> StudentService : calcularIdade()
+
+        alt idade < 18
+
+            StudentService -> StudentService : validarResponsável()
+
+        else idade >= 18
+
+            StudentService -> StudentService : continuarCadastro()
+
+        end
+
+        StudentService -> EnrollmentService : gerarMatricula()
+
+        EnrollmentService -> PostgreSQL : consultarCadastrosDoDia()
+
+        PostgreSQL --> EnrollmentService : contador
+
+        EnrollmentService --> StudentService : matrícula YYYYMMDD-XXX
+
+        StudentService -> PostgreSQL : salvarAluno()
+
+        PostgreSQL --> StudentService : alunoPersistido
+
+        StudentService -> NotificationService : enviarBoasVindas()
+
+        NotificationService --> StudentService : email enviado
+
+        StudentService -> AuditService : registrarCriação()
+
+        AuditService --> StudentService : log criado
+
+        StudentService --> StudentResolver : aluno criado
+
+        StudentResolver --> Frontend : HTTP 201
+
+        Frontend --> Staff : Cadastro realizado
+
+    end
+
+end
+
+@enduml

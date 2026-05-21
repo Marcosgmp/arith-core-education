@@ -1,0 +1,84 @@
+@startuml
+title REPORT.RF001 - Gerar Boletim Individual
+
+actor "ADMIN / STAFF / STUDENT" as User
+
+boundary Frontend
+control ReportResolver
+control ReportService
+control GPAService
+control FrequencyService
+control PDFService
+control AuditService
+
+database PostgreSQL
+
+User -> Frontend : Solicita boletim individual
+
+Frontend -> ReportResolver : query generateReport(studentId)
+
+ReportResolver -> ReportService : generateReport(studentId)
+
+ReportService -> PostgreSQL : validarPermissão()
+
+alt Permissão concedida
+
+    ReportService -> PostgreSQL : buscarAluno()
+
+    PostgreSQL --> ReportService : dadosAluno
+
+    ReportService -> PostgreSQL : buscarNotas()
+
+    PostgreSQL --> ReportService : notas
+
+    ReportService -> PostgreSQL : buscarFrequencias()
+
+    PostgreSQL --> ReportService : frequências
+
+    ReportService -> GPAService : calcularGPA()
+
+    GPAService --> ReportService : GPA
+
+    ReportService -> FrequencyService : calcularPercentual()
+
+    FrequencyService --> ReportService : percentual
+
+    ReportService -> ReportService : determinarStatus()
+
+    alt GPA >= 7 AND frequência >= 75%
+
+        ReportService -> ReportService : status=APROVADO
+
+    else GPA >=5 AND GPA <7
+
+        ReportService -> ReportService : status=RECUPERAÇÃO
+
+    else
+
+        ReportService -> ReportService : status=REPROVADO
+
+    end
+
+    ReportService -> PDFService : gerarPDF()
+
+    PDFService --> ReportService : boletim.pdf
+
+    ReportService -> AuditService : registrarGeração()
+
+    AuditService --> ReportService : log salvo
+
+    ReportService --> ReportResolver : arquivo PDF
+
+    ReportResolver --> Frontend : download PDF
+
+    Frontend --> User : Boletim gerado
+
+else Sem permissão
+
+    ReportResolver --> Frontend : HTTP 403
+
+    Frontend --> User : Acesso negado
+
+end
+
+@enduml

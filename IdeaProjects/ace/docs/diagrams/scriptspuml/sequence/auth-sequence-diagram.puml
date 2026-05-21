@@ -1,0 +1,83 @@
+@startuml
+title AUTH.RF001 - Login de Usuário
+
+actor User
+
+boundary Frontend
+control AuthResolver
+control AuthService
+control JWTService
+control BCryptService
+database PostgreSQL
+
+User -> Frontend : Acessa tela de login
+
+Frontend -> User : Exibe formulário\n(username,password)
+
+User -> Frontend : Preenche credenciais
+
+Frontend -> AuthResolver : mutation login(username,password)
+
+AuthResolver -> AuthService : authenticate(credentials)
+
+AuthService -> PostgreSQL : buscarUsuario(username)
+
+PostgreSQL --> AuthService : dadosUsuario
+
+alt Usuário encontrado
+
+    AuthService -> BCryptService : validarSenha(password, hash)
+
+    BCryptService --> AuthService : resultado
+
+    alt Senha válida
+
+        AuthService -> AuthService : verificarContaAtiva()
+
+        alt Conta ativa
+
+            AuthService -> AuthService : resetarTentativasFalhas()
+
+            AuthService -> JWTService : gerarToken(userId,role)
+
+            JWTService --> AuthService : JWT(24h)
+
+            AuthService --> AuthResolver : token + userData
+
+            AuthResolver --> Frontend : Login OK
+
+            Frontend --> User : Dashboard + Token
+
+        else Conta bloqueada/inativa
+
+            AuthService --> AuthResolver : Erro Conta Inativa
+
+            AuthResolver --> Frontend : HTTP 403
+
+            Frontend --> User : Acesso negado
+
+        end
+
+    else Senha inválida
+
+        AuthService -> AuthService : incrementarTentativas()
+
+        AuthService --> AuthResolver : Erro autenticação
+
+        AuthResolver --> Frontend : HTTP 401
+
+        Frontend --> User : Credenciais inválidas
+
+    end
+
+else Usuário inexistente
+
+    AuthService --> AuthResolver : Usuário não encontrado
+
+    AuthResolver --> Frontend : HTTP 401
+
+    Frontend --> User : Login inválido
+
+end
+
+@enduml

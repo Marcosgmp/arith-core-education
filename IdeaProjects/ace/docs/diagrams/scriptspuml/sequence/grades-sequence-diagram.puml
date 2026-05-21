@@ -1,0 +1,113 @@
+@startuml
+title GRADES.RF001 - Lançar Nota
+
+actor TEACHER
+
+boundary Frontend
+control GradeResolver
+control GradeService
+control GPAService
+control NotificationService
+control AuditService
+
+database PostgreSQL
+
+TEACHER -> Frontend : Seleciona turma
+
+Frontend -> GradeResolver : mutation launchGrade(dto)
+
+GradeResolver -> GradeService : launchGrade(dto)
+
+GradeService -> PostgreSQL : validarProfessorTurma()
+
+PostgreSQL --> GradeService : resultado
+
+alt Professor autorizado
+
+    GradeService -> PostgreSQL : validarAluno()
+
+    alt Aluno existe
+
+        GradeService -> PostgreSQL : verificarStatusAluno()
+
+        alt Status = ACTIVE
+
+            GradeService -> PostgreSQL : verificarMatricula()
+
+            alt Matriculado na turma
+
+                GradeService -> GradeService : validarNota(0-10)
+
+                GradeService -> GradeService : validarPeso(>0)
+
+                GradeService -> GradeService : validarData()
+
+                GradeService -> PostgreSQL : salvarNota()
+
+                PostgreSQL --> GradeService : notaPersistida
+
+                GradeService -> GPAService : recalcularGPA(aluno)
+
+                GPAService -> PostgreSQL : buscarNotasPeriodo()
+
+                PostgreSQL --> GPAService : notas
+
+                GPAService -> GPAService : calcularMediaPonderada()
+
+                GPAService -> PostgreSQL : atualizarHistorico()
+
+                GradeService -> NotificationService : enviarNotificacaoNota()
+
+                NotificationService -> PostgreSQL : buscarEmails()
+
+                NotificationService --> GradeService : email enviado
+
+                GradeService -> AuditService : registrarEvento()
+
+                AuditService --> GradeService : log salvo
+
+                GradeService --> GradeResolver : Nota criada
+
+                GradeResolver --> Frontend : HTTP 201
+
+                Frontend --> TEACHER : Lançamento realizado
+
+            else Não matriculado
+
+                GradeService --> GradeResolver : Erro matrícula
+
+                GradeResolver --> Frontend : HTTP 400
+
+                Frontend --> TEACHER : Aluno não pertence à turma
+
+            end
+
+        else Status inválido
+
+            GradeService --> GradeResolver : Erro Status
+
+            GradeResolver --> Frontend : HTTP 400
+
+            Frontend --> TEACHER : Aluno inativo
+
+        end
+
+    else Aluno inexistente
+
+        GradeService --> GradeResolver : Aluno não encontrado
+
+        GradeResolver --> Frontend : HTTP 404
+
+        Frontend --> TEACHER : Erro
+
+    end
+
+else Professor sem permissão
+
+    GradeResolver --> Frontend : HTTP 403
+
+    Frontend --> TEACHER : Acesso negado
+
+end
+
+@enduml

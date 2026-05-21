@@ -1,0 +1,93 @@
+@startuml
+title ATTENDANCE.RF001 - Registrar Presença
+
+actor TEACHER
+
+boundary Frontend
+control AttendanceResolver
+control AttendanceService
+control FrequencyService
+control NotificationService
+control AuditService
+
+database PostgreSQL
+
+TEACHER -> Frontend : Seleciona turma + data
+
+Frontend -> AttendanceResolver : mutation registerAttendance()
+
+AttendanceResolver -> AttendanceService : register(dto)
+
+AttendanceService -> PostgreSQL : validarProfessorTurma()
+
+PostgreSQL --> AttendanceService : resultado
+
+alt Professor autorizado
+
+    AttendanceService -> AttendanceService : validarData()
+
+    alt Data válida
+
+        loop Para cada aluno
+
+            AttendanceService -> PostgreSQL : verificarDuplicidade()
+
+            alt Registro inexistente
+
+                AttendanceService -> PostgreSQL : salvarPresença()
+
+            else Registro duplicado
+
+                AttendanceService --> AttendanceResolver : erro duplicidade
+
+            end
+
+        end
+
+        AttendanceService -> FrequencyService : recalcularFrequencia()
+
+        FrequencyService -> PostgreSQL : buscarRegistros()
+
+        PostgreSQL --> FrequencyService : presenças
+
+        FrequencyService -> FrequencyService : calcularPercentual()
+
+        FrequencyService -> PostgreSQL : atualizarHistorico()
+
+        alt Frequência < 75%
+
+            FrequencyService -> NotificationService : enviarAlerta()
+
+            NotificationService -> PostgreSQL : buscarEmails()
+
+            NotificationService --> FrequencyService : alerta enviado
+
+        end
+
+        AttendanceService -> AuditService : registrarOperacao()
+
+        AuditService --> AttendanceService : log salvo
+
+        AttendanceService --> AttendanceResolver : sucesso
+
+        AttendanceResolver --> Frontend : HTTP 201
+
+        Frontend --> TEACHER : Presença registrada
+
+    else Data futura
+
+        AttendanceResolver --> Frontend : HTTP 400
+
+        Frontend --> TEACHER : Data inválida
+
+    end
+
+else Professor sem vínculo
+
+    AttendanceResolver --> Frontend : HTTP 403
+
+    Frontend --> TEACHER : Sem permissão
+
+end
+
+@enduml
