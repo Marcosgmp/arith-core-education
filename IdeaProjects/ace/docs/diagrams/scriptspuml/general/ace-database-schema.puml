@@ -1,0 +1,276 @@
+@startuml ACE - Database Schema
+
+!define AUTH_TABLE #FFE0B2
+!define STUDENT_TABLE #E8F5E9
+!define GRADE_TABLE #FFCCBC
+!define ATTENDANCE_TABLE #E3F2FD
+!define TEACHER_TABLE #C8E6C9
+!define CLASSROOM_TABLE #BBDEFB
+!define AUDIT_TABLE #FFEBEE
+
+skinparam entity {
+    BackgroundColor<<AuthTable>> AUTH_TABLE
+    BackgroundColor<<StudentTable>> STUDENT_TABLE
+    BackgroundColor<<GradeTable>> GRADE_TABLE
+    BackgroundColor<<AttendanceTable>> ATTENDANCE_TABLE
+    BackgroundColor<<TeacherTable>> TEACHER_TABLE
+    BackgroundColor<<ClassroomTable>> CLASSROOM_TABLE
+    BackgroundColor<<AuditTable>> AUDIT_TABLE
+    BorderColor Black
+}
+
+title ACE System - Database Schema (PostgreSQL 15)
+
+' ==================== AUTH SCHEMA ====================
+package "auth_schema" {
+    entity "users" <<AuthTable>> {
+        id : UUID [PK]
+        username : VARCHAR(100) [UNIQUE]
+        password_hash : VARCHAR(255)
+        email : VARCHAR(255) [UNIQUE]
+        role : VARCHAR(20) [ADMIN, STAFF, TEACHER, STUDENT, GUARDIAN]
+        status : VARCHAR(20) [ACTIVE, INACTIVE, LOCKED]
+        failed_login_attempts : INTEGER [DEFAULT 0]
+        locked_until : TIMESTAMP NULL
+        created_at : TIMESTAMP [DEFAULT NOW()]
+        updated_at : TIMESTAMP [DEFAULT NOW()]
+    }
+}
+
+' ==================== STUDENT SCHEMA ====================
+package "student_schema" {
+    entity "students" <<StudentTable>> {
+        id : UUID [PK]
+        full_name : VARCHAR(255)
+        cpf : VARCHAR(11) [UNIQUE]
+        email : VARCHAR(255) [UNIQUE]
+        phone : VARCHAR(20)
+        enrollment : VARCHAR(20) [UNIQUE] -- YYYYMMDD-XXX
+        birth_date : DATE
+        address : TEXT
+        status : VARCHAR(20) [ACTIVE, INACTIVE, GRADUATED, TRANSFERRED, EXPELLED]
+        guardian_name : VARCHAR(255) NULL
+        guardian_phone : VARCHAR(20) NULL
+        guardian_email : VARCHAR(255) NULL
+        current_gpa : NUMERIC(3,2) NULL
+        attendance_percentage : NUMERIC(5,2) NULL
+        approval_status : VARCHAR(20) [APPROVED, RECOVERY, FAILED] NULL
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        --
+        * PK: (id)
+        * UQ: (cpf), (email), (enrollment)
+        * IDX: (status), (created_at)
+    }
+    
+    entity "grades" <<GradeTable>> {
+        id : UUID [PK]
+        student_id : UUID [FK → students.id]
+        classroom_subject_id : UUID [FK]
+        score : NUMERIC(3,2) -- 0-10
+        weight : NUMERIC(5,2)
+        assessment_type : VARCHAR(20) [EXAM, ASSIGNMENT, QUIZ, PARTICIPATION]
+        description : TEXT NULL
+        comments : TEXT NULL
+        assessment_date : DATE
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        --
+        * PK: (id)
+        * FK: (student_id)
+        * IDX: (student_id, assessment_date)
+        * CHK: score >= 0 AND score <= 10
+        * CHK: weight > 0
+    }
+    
+    entity "attendances" <<AttendanceTable>> {
+        id : UUID [PK]
+        student_id : UUID [FK → students.id]
+        classroom_subject_id : UUID [FK]
+        date : DATE
+        status : VARCHAR(20) [PRESENT, ABSENT, LATE, EXCUSED, MEDICAL_LEAVE]
+        justification : TEXT NULL
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        --
+        * PK: (id)
+        * FK: (student_id)
+        * UNIQUE: (student_id, classroom_subject_id, date)
+        * IDX: (student_id, date)
+    }
+    
+    entity "academic_history" <<StudentTable>> {
+        id : UUID [PK]
+        student_id : UUID [FK → students.id]
+        period : VARCHAR(10) -- 2026-1, 2026-2
+        gpa : NUMERIC(3,2)
+        attendance_percentage : NUMERIC(5,2)
+        approval_status : VARCHAR(20)
+        created_at : TIMESTAMP
+        --
+        * PK: (id)
+        * FK: (student_id)
+        * UNIQUE: (student_id, period)
+    }
+}
+
+' ==================== TEACHER SCHEMA ====================
+package "teacher_schema" {
+    entity "teachers" <<TeacherTable>> {
+        id : UUID [PK]
+        full_name : VARCHAR(255)
+        cpf : VARCHAR(11) [UNIQUE]
+        email : VARCHAR(255) [UNIQUE]
+        phone : VARCHAR(20)
+        status : VARCHAR(20) [ACTIVE, INACTIVE, ON_LEAVE, TERMINATED]
+        contract_type : VARCHAR(20) [FULL_TIME, PART_TIME, HOURLY, SUBSTITUTE]
+        workload_hours : INTEGER
+        subject_ids : UUID[] -- Array of subject IDs
+        hire_date : DATE
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        --
+        * PK: (id)
+        * UQ: (cpf), (email)
+        * IDX: (status)
+        * CHK: workload_hours > 0
+    }
+}
+
+' ==================== CLASSROOM SCHEMA ====================
+package "classroom_schema" {
+    entity "classrooms" <<ClassroomTable>> {
+        id : UUID [PK]
+        name : VARCHAR(100)
+        subject_id : UUID [FK]
+        teacher_id : UUID [FK → teachers.id]
+        period : VARCHAR(10)
+        min_capacity : INTEGER
+        max_capacity : INTEGER
+        current_capacity : INTEGER [DEFAULT 0]
+        room_location : VARCHAR(100) NULL
+        status : VARCHAR(20) [ACTIVE, CLOSED]
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        --
+        * PK: (id)
+        * FK: (teacher_id)
+        * IDX: (teacher_id, status)
+        * CHK: max_capacity >= min_capacity
+        * CHK: current_capacity <= max_capacity
+    }
+    
+    entity "enrollments" <<ClassroomTable>> {
+        id : UUID [PK]
+        classroom_id : UUID [FK → classrooms.id]
+        student_id : UUID [FK → students.id]
+        enrolled_at : TIMESTAMP
+        --
+        * PK: (id)
+        * FK: (classroom_id)
+        * FK: (student_id)
+        * UNIQUE: (classroom_id, student_id)
+        * IDX: (student_id)
+    }
+}
+
+' ==================== AUDIT SCHEMA ====================
+package "audit_schema" {
+    entity "audit_logs" <<AuditTable>> {
+        id : UUID [PK]
+        user_id : UUID [FK → users.id]
+        action : VARCHAR(50) [CREATE_STUDENT, POST_GRADE, REGISTER_ATTENDANCE, etc]
+        entity_type : VARCHAR(50) [STUDENT, GRADE, TEACHER, etc]
+        entity_id : UUID
+        before_value : JSONB NULL
+        after_value : JSONB NULL
+        reason : TEXT NULL
+        ip_address : VARCHAR(45)
+        timestamp : TIMESTAMP
+        --
+        * PK: (id)
+        * IDX: (user_id, timestamp)
+        * IDX: (entity_type, entity_id)
+        * Retention: 5 years (LGPD compliance)
+    }
+}
+
+' ==================== RELATIONSHIPS ====================
+grades "0..*" --> "1" students : "references"
+attendances "0..*" --> "1" students : "references"
+academic_history "0..*" --> "1" students : "references"
+enrollments "0..*" --> "1" classrooms : "in"
+enrollments "0..*" --> "1" students : "enrolled"
+classrooms "0..*" --> "1" teachers : "taught by"
+audit_logs "0..*" --> "1" users : "by"
+
+note right of students
+  <b>Primary Student Table</b>
+  
+  • CPF: única no sistema
+  • Email: única
+  • Enrollment: formato YYYYMMDD-XXX
+  • Status controla operações
+  • GPA & Attendance denormalizados
+    (buscados frequentemente)
+end note
+
+note right of grades
+  <b>Grades Table</b>
+  
+  • Child entity de Student
+  • Score: 0-10 (constraint)
+  • Weight: peso da avaliação
+  • Assessment_type: tipo prova
+  • Relationship: many-to-one com Student
+end note
+
+note right of attendances
+  <b>Attendances Table</b>
+  
+  • Child entity de Student
+  • Status: 5 valores enum
+  • Unique constraint: (student, classroom, date)
+  • Índice em (student_id, date) para queries rápidas
+end note
+
+note right of teachers
+  <b>Teachers Table</b>
+  
+  • CPF: única
+  • Email: única
+  • subject_ids: array de UUIDs
+    (PostgreSQL native array type)
+  • Status controla permissões
+end note
+
+note right of classrooms
+  <b>Classrooms Table</b>
+  
+  • Turma = classe de alunos
+  • Min/Max capacity: validação
+  • Current_capacity: denormalizado
+  • Status: ACTIVE ou CLOSED
+  • FK para teacher_id
+end note
+
+note right of enrollments
+  <b>Enrollments Table</b>
+  
+  • Junction table: classroom ↔ student
+  • Many-to-many relationship
+  • Unique constraint: (classroom, student)
+  • Índice em student_id para queries
+end note
+
+note right of audit_logs
+  <b>Audit Logs Table</b>
+  
+  • Conformidade LGPD
+  • JSONB: before/after values (flexible)
+  • 5 anos retenção legal
+  • Índices: user + timestamp, entity
+  • Imutável (append-only)
+end note
+
+@enduml
