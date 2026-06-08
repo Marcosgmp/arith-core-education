@@ -1,0 +1,136 @@
+@startuml ACE - Request Flow (Example: Post Grade)
+
+autonumber
+skinparam sequenceMessageAlign center
+
+actor "Professor\n(TEACHER)" as TEACHER
+participant "Web Browser\n(React)" as CLIENT
+participant "CDN / API Gateway" as GATEWAY
+participant "Load Balancer\n(K8s Ingress)" as LB
+participant "GraphQL Endpoint\n(Spring Boot)" as GRAPHQL
+participant "AuthenticationFilter" as AUTH_FILTER
+participant "GradeApplicationService" as GRADE_SERVICE
+participant "PostGradeUseCase" as GRADE_UC
+participant "StudentRepository\n(JPA)" as STU_REPO
+participant "GradeRepository\n(JPA)" as GRD_REPO
+participant "Redis Cache" as CACHE
+participant "PostgreSQL\nPrimary" as DB_PRIMARY
+participant "Message Queue\n(RabbitMQ)" as MQ
+participant "Email Service\n(AWS SES)" as EMAIL
+
+' 1. Request
+TEACHER -> CLIENT : Click "Lançar Nota"
+CLIENT -> CLIENT : Build GraphQL mutation\n(studentId, score, weight, ...)
+CLIENT -> GATEWAY : HTTPS POST\n/graphql\nwith JWT token
+
+' 2. Gateway Processing
+GATEWAY -> GATEWAY : Validate HTTPS\nCheck rate limits\nValidate signature
+GATEWAY -> LB : Forward to service
+
+' 3. Load Balancer
+LB -> LB : Select healthy pod\n(round-robin or least-loaded)
+LB -> GRAPHQL : Forward request
+
+' 4. Authentication
+GRAPHQL -> AUTH_FILTER : Validate JWT token
+AUTH_FILTER -> AUTH_FILTER : Verify HMAC-SHA256\nExtract user role\nCheck expiration
+AUTH_FILTER -> GRAPHQL : Token valid ✓
+
+' 5. GraphQL Resolution
+GRAPHQL -> GRAPHQL : Parse mutation\nValidate schema\nMap to resolver
+GRAPHQL -> GRADE_SERVICE : postGrade(command)
+
+' 6. Application Service
+GRADE_SERVICE -> GRADE_UC : execute(command)
+
+' 7. Domain Logic
+GRADE_UC -> STU_REPO : findById(studentId)
+STU_REPO -> CACHE : Try get from Redis\nkey: "student:uuid"
+CACHE --> STU_REPO : MISS (not in cache)
+STU_REPO -> DB_PRIMARY : SELECT * FROM students\nWHERE id = ?
+DB_PRIMARY --> STU_REPO : student row
+STU_REPO -> CACHE : Set cache\nkey: "student:uuid"\nTTL: 1 hour
+STU_REPO --> GRADE_UC : Student entity
+
+' 8. Validation
+GRADE_UC -> GRADE_UC : Validate score (0-10)\nValidate weight (> 0)\nValidate student status (ACTIVE)\nValidate teacher permission
+
+' 9. Grade Creation & Persistence
+GRADE_UC -> GRD_REPO : save(grade)
+GRD_REPO -> DB_PRIMARY : INSERT INTO grades\n(student_id, score, weight, ...)\nVALUES (?, ?, ?, ...)
+
+DB_PRIMARY --> GRD_REPO : id, created_at, updated_at
+
+GRD_REPO -> CACHE : Invalidate student cache\nDEL "student:uuid"\nDEL "grades:uuid"
+
+' 10. GPA Recalculation
+GRADE_UC -> GRD_REPO : findByStudentId(studentId)
+GRD_REPO -> DB_PRIMARY : SELECT * FROM grades\nWHERE student_id = ?
+DB_PRIMARY --> GRD_REPO : All grades
+
+GRADE_UC -> GRADE_UC : Calculate GPA\nΣ(score × weight) / Σ(weight)\nDetermine status
+
+GRD_REPO -> DB_PRIMARY : UPDATE students\nSET current_gpa = ?,\napproval_status = ?\nWHERE id = ?
+
+' 11. Event Publishing (Async)
+GRADE_UC -> MQ : Publish event\n"GradePosted"\n(grade, student, teacher)
+
+' 12. Response
+GRADE_UC --> GRADE_SERVICE : grade result
+GRADE_SERVICE --> GRAPHQL : success response
+
+' 13. Send Notification (Async - Non-blocking)
+MQ --> EMAIL : Process "GradePosted" event\nBuild email\nSend via SMTP
+
+EMAIL --> TEACHER : ✓ Email received\n(Grade notification)
+
+' 14. Return to Client
+GRAPHQL -> CLIENT : HTTP 200\nJSON: {\n  "data": {\n    "postGrade": {\n      "id": "uuid",\n      "score": 8.5,\n      "student": {\n        "currentGPA": 8.2,\n        "status": "APPROVED"\n      }\n    }\n  }\n}
+
+CLIENT -> CLIENT : Update UI\nShow success message\nRefresh grade list
+
+CLIENT --> TEACHER : ✓ Request completed\n(~200ms total)
+
+note right of TEACHER
+  <b>Timeline:</b>
+  
+  T+0ms: Browser sends request
+  T+50ms: API Gateway validates
+  T+100ms: Load Balancer routes
+  T+120ms: Authentication check
+  T+150ms: Business logic
+  T+180ms: Database operations
+  T+200ms: Response sent
+  
+  (Email sent in background)
+end note
+
+note right of CACHE
+  <b>Caching Strategy:</b>
+  
+  • Student data: 1 hour TTL
+  • Grade list: 15 min TTL
+  • Invalidate on write
+  • Eventually consistent
+end note
+
+note right of MQ
+  <b>Async Processing:</b>
+  
+  • Non-blocking email send
+  • Automatic retries
+  • Dead letter queue
+  • Guaranteed delivery
+end note
+
+note right of AUTH_FILTER
+  <b>Security Layers:</b>
+  
+  ✅ HTTPS encryption
+  ✅ JWT validation
+  ✅ HMAC-SHA256 signature
+  ✅ Rate limiting
+  ✅ RBAC enforcement
+end note
+
+@enduml
